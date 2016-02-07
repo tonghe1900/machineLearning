@@ -14,7 +14,7 @@ public enum DecisionTreeEngine {
 	INSTANCE;
 	public DecisionTree createDecisionTree(String fullFilePath) {
 
-		List<Record> data = new Data(fullFilePath).getRecords();
+		List<Record> data = Data.INSTANCE.loadData(fullFilePath);
 		return createDecisionTree(data);
 	}
 
@@ -25,13 +25,12 @@ public enum DecisionTreeEngine {
 		queue.add(root);
 		while (!queue.isEmpty()) {
 			DecisionTree.Node node = queue.poll();
-			String attribute = getBestClassifierAttribute(node);
-			if (attribute != null) {
-				Collection<DecisionTree.Node> children = generateChildren(node,
-						attribute);
+			Collection<DecisionTree.Node> children = getChildrenForBestClassifierAttribute(node);
+			if (children != null) {
+
 				children.stream().filter(DecisionTree.Node::whetherDivided)
 						.forEach((e) -> queue.add(e));
-				;
+				
 			}
 
 		}
@@ -45,7 +44,8 @@ public enum DecisionTreeEngine {
 			sampleDis.acceptOneRecord(record);
 		}
 		root.calculteEntropy();
-		root.setPotentialClassifierAttrs(Record.getDeterminingAttributes());
+		root.setPotentialClassifierAttrs(new HashSet<>(Data.INSTANCE
+				.getDeterminingAttributes()));
 		return root;
 	}
 
@@ -56,8 +56,9 @@ public enum DecisionTreeEngine {
 		return children;
 	}
 
-	private String getBestClassifierAttribute(Node node) {
-		String result = null;
+	private Collection<DecisionTree.Node> getChildrenForBestClassifierAttribute(
+			Node node) {
+		Collection<DecisionTree.Node> result = null;
 		Set<String> sets = new HashSet<>(node.getPotentialClassifierAttrs());
 		if (sets.isEmpty())
 			return null;
@@ -68,7 +69,7 @@ public enum DecisionTreeEngine {
 			double entropy = calcEntropy(node, children);
 			if (entropy < min) {
 				min = entropy;
-				result = attribute;
+				result = children;
 			}
 
 		}
